@@ -1,22 +1,31 @@
 <script setup>
-  import { ref, onMounted } from 'vue';
 
-  const monedas = ref([
-      { codigo: 'USD', texto: 'Dolar de Estados Unidos'},
-      { codigo: 'MXN', texto: 'Peso Mexicano'},
-      { codigo: 'EUR', texto: 'Euro'},
-      { codigo: 'GBP', texto: 'Libra Esterlina'},
-  ])
+  import { ref, reactive } from 'vue';
+  import Alerta from './components/Alerta.vue'
+  import Spinner from './components/Spinner.vue'
+  import Cotizacion from './components/Cotizacion.vue'
+  import UseCripto from './composables/useCripto'
 
-  const criptomonedas = ref([]);
+  const { monedas, criptomonedas, cargando, cotizacion, obtenerCotizacion, mostrarResultado } = UseCripto();
 
-  onMounted(() => {
-    const url = 'https://min-api.cryptocompare.com/data/top/mktcapfull?limit=20&tsym=USD';
-    fetch(url)
-      .then(respuesta => respuesta.json())
-      .then(({ Data }) => criptomonedas.value = Data)
+  const error =ref('')
 
+  const cotizar = reactive({
+    moneda: '',
+    criptomoneda: ''
   })
+
+  const cotizarCripto = () => {
+    // Validar que cotizar este lleno
+    if(Object.values(cotizar).includes('')){
+      error.value = 'Todos los campos son obligatorios';
+      return;
+    }
+    error.value = '';
+    obtenerCotizacion(cotizar)
+  }
+
+  
 
 </script>
 
@@ -25,12 +34,23 @@
     <h1 class="titulo">Cotizador de <span>Criptomonedas</span></h1>
 
     <div class="contenido">
+      <Alerta
+        v-if="error"
+      >
+        {{ error }}
+      </Alerta>
 
-      <form class="formulario">
+      <form 
+        class="formulario"
+        @submit.prevent="cotizarCripto"
+      >
 
         <div class="campo">
           <label for="moneda">Moneda:</label>
-          <select id="moneda">
+          <select 
+            id="moneda"
+            v-model="cotizar.moneda"
+          >
             <option value="">-- Selecciona --</option>
             <option 
               v-for="moneda in monedas" 
@@ -41,7 +61,10 @@
 
         <div class="campo">
           <label for="cripto">Criptomoneda:</label>
-          <select id="cripto">
+          <select 
+            id="cripto"
+            v-model="cotizar.criptomoneda"
+          >
             <option value="">-- Selecciona --</option>
             <option 
               v-for="criptomoneda in criptomonedas" 
@@ -53,6 +76,15 @@
         <input type="submit" value="Cotizar"/>
         
       </form>
+
+      <Spinner
+        v-if="cargando"
+      />
+
+      <Cotizacion
+        v-if="mostrarResultado"
+        :cotizacion="cotizacion"
+      />
 
     </div>
 
